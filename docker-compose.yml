@@ -3,7 +3,7 @@ version: "3.7"
 services:
 
   commonui-sample:
-    image: vertigo-ala/commonui-sample
+    image: vertigoala/commonui-sample
     ports:
       - 8000:8000
       - 8080:8080
@@ -26,7 +26,7 @@ services:
       - "9300:9300"
 
   image-sample:
-    image: vertigo-ala/ala-images
+    image: vertigoala/ala-images
     container_name: image-sample
 #    ports:
 #      - 8080:8080
