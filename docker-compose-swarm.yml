@@ -23,6 +23,9 @@ services:
   commonui-sample:
     image: vertigoala/commonui-sample:latest
     deploy:
+      placement:
+        constraints:
+          - node.role == worker
       labels:
         traefik.frontend.rule: "PathPrefix:/commonui-bs3"
         traefik.backend: "commonui-sample"
@@ -34,6 +37,11 @@ services:
   pgdbimage: 
     image: postgres:9.3
     env_file: ./env/.envimage
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+          - node.hostname == worker2
     volumes:
       - db_data_imageservice:/var/lib/postgresql/data
     networks:
@@ -44,6 +52,10 @@ services:
       - cluster.name=docker-cluster
       - discovery.type=single-node
     image: "docker.elastic.co/elasticsearch/elasticsearch:7.0.0"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
     networks:
       - traefik-net
 #      - backend
