@@ -2,33 +2,67 @@ version: "3.7"
 
 services:
 
-  commonui-sample:
-    image: vertigoala/commonui-sample
+  traefik:
+    image: traefik:latest
     ports:
       - 8000:80
+      - 8080:8080
+    command: traefik --docker --docker.swarmMode --docker.watch --docker.network=traefik-net --api 
+    #  --docker.trace --accessLog -l DEBUG 
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - traefik-net
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+
+  commonui-sample:
+    image: vertigoala/commonui-sample:latest
+    deploy:
+      labels:
+        traefik.frontend.rule: "PathPrefix:/commonui-bs3"
+        traefik.backend: "commonui-sample"
+        traefik.port: "80"
+        traefik.enable: "true"
+    networks:
+      - traefik-net
+
   pgdbimage: 
     image: postgres:9.3
     env_file: ./env/.envimage
     volumes:
       - db_data_imageservice:/var/lib/postgresql/data
+    networks:
+      - traefik-net
+#      - backend
   elasticsearch:
     environment:
       - cluster.name=docker-cluster
       - discovery.type=single-node
     image: "docker.elastic.co/elasticsearch/elasticsearch:7.0.0"
-    ports:
-      - "9200:9200"
-      - "9300:9300"
+    networks:
+      - traefik-net
+#      - backend
 
   image-sample:
-    image: vertigoala/image-service
+    image: vertigoala/image-service:latest
     deploy:
       placement:
         constraints:
           - node.role == worker
           - node.hostname == worker1
-    ports:
-      - 8080:8080
+      labels:
+        traefik.frontend.rule: "PathPrefix:/images"
+        traefik.backend: "image-sample"
+        traefik.port: "8080"
+        traefik.enable: "true"
+    networks:
+      - traefik-net
+#      - backend
     depends_on:
       - pgdbimage
       - commonui-sample
@@ -36,29 +70,44 @@ services:
     configs:
       - source: images-config
         target: /data/image-service/config/image-service-config.properties
+      - source: tomcat-logging
+        target: /usr/local/tomcat/conf/logging.properties
     volumes:
       - data_images:/data/image-service-store
       - data_elastic:/data/image-service/elasticsearch
 
   image-store:
     image: nginx:alpine
-    ports:
-      - "8001:80"
     deploy:
       placement:
         constraints:
           - node.role == worker
           - node.hostname == worker1
+      labels:
+        traefik.frontend.rule: "PathPrefix:/store"
+        traefik.backend: "image-store"
+        traefik.port: "80"
+        traefik.enable: "true"
+    networks:
+      - traefik-net
     volumes:
       - type: volume
         source: data_images
         target: /usr/share/nginx/html
         volume:
           nocopy: true
+
 configs:
   images-config:
     file: ./swarm/images-config.properties
+  tomcat-logging:
+    file: ./config/logging.properties
 volumes:
   db_data_imageservice:
   data_images:
   data_elastic:
+networks:
+  traefik-net:
+    driver: overlay
+#  backend:
+#    driver: overlay
