@@ -66,6 +66,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+          - node.labels.alanode == worker0
 #          - node.hostname == worker1
       labels:
         traefik.frontend.rule: "PathPrefix:/images"
@@ -94,6 +95,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+          - node.labels.alanode == worker0
 #          - node.hostname == worker1
       labels:
         traefik.frontend.rule: "PathPrefix:/store"
@@ -116,8 +118,11 @@ configs:
     file: ./config/logging.properties
 volumes:
   db_data_imageservice:
+    name: ala-teste-imageservice-db
   data_images:
+    name: ala-teste-imageservice-data
   data_elastic:
+    name: ala-teste-imageservice-elastic
 networks:
   traefik-net:
     external: true
